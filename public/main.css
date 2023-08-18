@@ -1,0 +1,35 @@
+.title {
+  text-align: center;
+  margin-top: 30px;
+  text-decoration: underline;
+}
+
+.paragraph {
+  margin-top: 50px;
+  text-align: center;
+  font-size: large;
+  text-decoration: wavy;
+}
+
+
+.btnSection{
+    margin-top: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+}
+
+.shadow-button {
+    background-color: #3498db;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+  }
+
+  .shadow-button:hover {
+    background-color: #0056b3;
+  }
