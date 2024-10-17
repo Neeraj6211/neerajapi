@@ -1,17 +1,14 @@
-name: Check Repository with Minor or Renovate Label on PR
+name: Check and Merge PRs with Minor or Renovate Label
 
 on:
-  workflow_dispatch:
-    inputs:
-      pr_number:
-        description: 'Pull Request Number'
-        required: true
-        default: ''
-  check_run:
-    types: [completed]
+  pull_request:
+    types: [opened]
+  push:
+    branches:
+      - main
 
 jobs:
-  check-repo:
+  check-and-merge:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -19,13 +16,6 @@ jobs:
       statuses: write
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Set PR number
-        id: set_pr_number
-        run: echo "PR_NUMBER=${{ inputs.pr_number }}" >> $GITHUB_ENV
-
       - name: Check repository with Minor or Renovate label
         id: check_repo
         uses: actions/github-script@v6
@@ -33,14 +23,13 @@ jobs:
           script: |
             const { repo } = context.repo;
             const octokit = github.rest;
-            const prNumber = process.env.PR_NUMBER;
 
             async function getRepoLabels() {
               try {
-                const prLabels = await octokit.pulls.getLabels({
+                const prLabels = await octokit.pulls.get({
                   owner: repo.owner,
                   repo: repo.name,
-                  pull_number: prNumber
+                  state: 'open'
                 }).then(data => data.data);
 
                 const hasMinorLabel = prLabels.some(label => label.name.toLowerCase() === 'minor');
@@ -58,15 +47,18 @@ jobs:
             const repoInfo = await getRepoLabels();
 
             if (repoInfo.hasMinorOrRenovate) {
-              console.log(`PR #${prNumber} has either Minor or Renovate label`);
+              console.log(`Found open PR with Minor or Renovate label`);
               
-              // Example: Send a notification to a Slack channel
-              await octokit.rest.issues.create({
+              // Merge the PR
+              await octokit.rest.pulls.merge({
                 owner: repo.owner,
                 repo: repo.name,
-                title: 'Repository with Minor or Renovate Label',
-                body: `This pull request has either Minor or Renovate label:\n\nPR #${prNumber}`
+                pull_number: pr.number,
+                commit_title: 'Auto-merge PR with Minor/Renovate label',
+                sha: pr.head.sha
               });
+
+              console.log(`Merged PR #${pr.number}`);
             } else {
-              console.log(`PR #${prNumber} does not have either Minor or Renovate label`);
+              console.log(`No open PRs with Minor or Renovate label`);
             }
