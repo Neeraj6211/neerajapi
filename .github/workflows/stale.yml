@@ -1,14 +1,11 @@
-name: Check and Merge PRs with Minor or Renovate Label
+name: Auto-Merge PRs with Minor or Renovate Label
 
 on:
   pull_request:
     types: [opened]
-  push:
-    branches:
-      - main
 
 jobs:
-  check-and-merge:
+  auto-merge-pr:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -33,11 +30,11 @@ jobs:
 
             async function getRepoLabels() {
               try {
-                const prNumber = process.env.PR_NUMBER;
+                const prNumber = parseInt(process.env.PR_NUMBER);
                 const prLabels = await octokit.pulls.get({
                   owner: repo.owner,
                   repo: repo.name,
-                  pull_number: parseInt(prNumber)
+                  pull_number: prNumber
                 }).then(data => data.data);
 
                 const hasMinorLabel = prLabels.some(label => label.name.toLowerCase() === 'minor');
