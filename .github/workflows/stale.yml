@@ -1,0 +1,67 @@
+name: Check Repository with Minor and Renovate Labels on PR
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  check-repo:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      statuses: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Check repository with Minor and Renovate labels
+        id: check_repo
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { repo } = context.repo;
+            const octokit = github.rest;
+
+            async function getRepoLabels() {
+              try {
+                const prNumber = context.payload.pull_request.number;
+                const prLabels = await octokit.pulls.getLabels({
+                  owner: repo.owner,
+                  repo: repo.name,
+                  pull_number: prNumber
+                }).then(data => data.data);
+
+                const hasMinorLabel = prLabels.some(label => label.name.toLowerCase() === 'minor');
+                const hasRenovateLabel = prLabels.some(label => label.name.toLowerCase() === 'renovate');
+
+                return {
+                  hasMinorAndRenovate: hasMinorLabel && hasRenovateLabel
+                };
+              } catch (error) {
+                console.error('Error fetching PR labels:', error.message);
+                throw error;
+              }
+            }
+
+            const repoInfo = await getRepoLabels();
+
+            if (repoInfo.hasMinorAndRenovate) {
+              console.log(`PR #${context.payload.pull_request.number} has both Minor and Renovate labels`);
+              
+              // Example: Send a notification to a Slack channel
+              await octokit.rest.issues.create({
+                owner: repo.owner,
+                repo: repo.name,
+                title: 'Repository with Minor and Renovate Labels',
+                body: `This pull request has both Minor and Renovate labels:\n\nPR #${context.payload.pull_request.number}`
+              });
+            } else {
+              console.log(`PR #${context.payload.pull_request.number} does not have both Minor and Renovate labels`);
+            }
+          
+
+      - name: Log result
+        run: |
+          echo "Check completed successfully"
